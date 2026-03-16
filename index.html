@@ -1,15 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!DOCTYPE html>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
     <title>Proof of Human</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Required dependencies for ShareRing SDK QR rendering -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+    
     <script src="https://raw.githack.com/ShareRing/shareringlink-javascript-library/master/sharering.query.lib.prod.min.js"></script>
+    
     <style>
         body {font-family: system-ui; background:#0f0f0f; color:#fff; text-align:center; padding:40px 20px; margin:0;}
         #status {margin:30px 0; font-size:18px; color:#aaa;}
-        #qrcode {margin:20px auto; max-width:300px;}
-        .error {color:#ff5555;}
+        #qrcode {margin:20px auto; max-width:300px; min-height:300px; background:#fff; padding:10px; border-radius:12px;}
+        .error {color:#ff5555; font-weight:bold;}
+        .warning {color:#ffaa00;}
+    </style>
+</head>
+<body>
+    <h1>Prove You Are Human</h1>
+    <p>Scan with <b>ShareRing Me</b> app.<br>Biometric check — privacy-first.</p>
+    
+    <div class="sharering-query"
+         queryId="YOUR_EXACT_QUERY_ID_HERE"
+         mode="basic"
+         qrcodeOwner="YOUR_EXACT_QUERY_OWNER_HERE"
+         app="ShareRing Me"
+         oninit="onInit"
+         onscan="onScan">
+        <div id="qrcode"></div>  <!-- QR will appear here -->
+    </div>
+
+    <div id="status">Loading QR code...</div>
+
+    <script>
+        // Fix jQuery noConflict if needed (helps in some environments)
+        var $ = jQuery;
+
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const urlParams = new URLSearchParams(location.search);
+        const chatId = urlParams.get('chat_id') || 'unknown';
+
+        function onInit(data) {
+            console.log('ShareRing SDK init success:', data);
+            document.getElementById('status').textContent = '✅ QR ready — scan with ShareRing Me';
+        }
+
+        function onScan(data) {
+            console.log('Scan result:', data);
+            // Any successful scan = human proof on free tier
+            document.getElementById('status').innerHTML = '✅ Human verified!<br>Approving join...';
+            tg.sendData(JSON.stringify({action: 'human_verified', chat_id: chatId}));
+            setTimeout(() => tg.close(), 1500);
+        }
+
+        // Error catching + empty check
+        window.addEventListener('error', (event) => {
+            console.error('JS error:', event.message, event.filename, event.lineno);
+            if (event.message.toLowerCase().includes('sharering') || event.message.includes('$') || event.message.includes('qrcode')) {
+                document.getElementById('status').innerHTML = '<span class="error">QR failed — likely missing deps or bad config. Check console.</span>';
+            }
+        });
+
+        setTimeout(() => {
+            const qrDiv = document.getElementById('qrcode');
+            if (qrDiv.innerHTML.trim() === '' || qrDiv.innerHTML.includes('Loading')) {
+                document.getElementById('status').innerHTML += '<br><span class="warning">QR empty — check queryId/Owner or dashboard config.</span>';
+            }
+        }, 8000);  // Longer timeout for safety
+    </script>
+</body>
+</html>
     </style>
 </head>
 <body>
